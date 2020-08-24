@@ -2,7 +2,7 @@ var game;
 var gameOptions = {
     bounceHeight: 300,
     ballGravity:1200,
-    ballPower: 1200,
+    shoveVolocity: 500,
     obstacleSpeed: 250,
     obstacleDistanceRange: [200, 450],
     localStorageName: 'bestballscore'
@@ -33,18 +33,19 @@ window.onload = function() {
     print("game created")
     window.focus();
 }
-class playGame extends Phaser.Scene{
+class playGame extends Phaser.Scene {
+
     constructor(){
         super('PlayGame');
     }
+
     preload(){
         this.load.image('ground', 'assets/images/ground.png');
         this.load.image('ball', 'assets/images/ball.png');
         this.load.image('obstacle', 'assets/images/obstacle.png');
     }
-    create(){
 
-        this.firstBounce = 0;  //rebound velocity on first bounce
+    create(){
 
         // add ground
         this.ground = this.physics.add.sprite(game.config.width / 2, game.config.height / 4 * 3, 'ground');
@@ -55,6 +56,7 @@ class playGame extends Phaser.Scene{
         this.ball.body.gravity.y = gameOptions.ballGravity;
         this.ball.setBounce(1);
         this.ball.setCircle(25);
+
 
         // to create obstacles
         this.obstacleGroup = this.physics.add.group();
@@ -76,15 +78,18 @@ class playGame extends Phaser.Scene{
         this.scoreText = this.add.text(10, 10, '');
         this.updateScore(this.score);
     }
+
+    // helper function to increment the scoreboard
     updateScore(inc){
         this.score += inc;
         this.scoreText.text = 'Score: ' + this.score + '\nBest: ' + this.topScore;
     }
-    boost(){
-        if(this.firstBounce != 0){
-            this.ball.body.velocity.y = gameOptions.ballPower;
-        }
+
+    // the handler for clicks and taps --- sets the ball velocity to gameOptions.shoveVolocity
+    boost() {
+        this.ball.body.velocity.y = gameOptions.shoveVolocity;
     }
+
     getRightmostObstacle(){
         let rightmostObstacle = 0;
         this.obstacleGroup.getChildren().forEach(function(obstacle){
@@ -92,20 +97,23 @@ class playGame extends Phaser.Scene{
         });
         return rightmostObstacle;
     }
+
     update(){
+
+        // bouce from the ground
         this.physics.world.collide(this.ground, this.ball, function(){
-            if(this.firstBounce == 0){
-              console.log("in the first-bounce if statement")
-                this.firstBounce = this.ball.body.velocity.y;
-            }
-            else{
-                this.ball.body.velocity.y = this.firstBounce;
-            }
+            // nothing to do -- bounce is handled by physics engine...
+            console.log('in bounce')
         }, null, this);
+
+        // check for collisions with obstacleGroup
         this.physics.world.collide(this.ball, this.obstacleGroup, function(){
             localStorage.setItem(gameOptions.localStorageName, Math.max(this.score, this.topScore));
+            console.log('Game over!')
             this.scene.start('PlayGame');
         }, null, this);
+
+        // recycle obstacles
         this.obstacleGroup.getChildren().forEach(function(obstacle){
             if(obstacle.getBounds().right < 0){
                 this.updateScore(1);
@@ -113,4 +121,5 @@ class playGame extends Phaser.Scene{
             }
         }, this)
     }
+
 }
